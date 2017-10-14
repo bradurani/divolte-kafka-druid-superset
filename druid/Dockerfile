@@ -13,7 +13,6 @@ RUN apt-get update \
       && apt-get update \
       && echo oracle-java-8-installer shared/accepted-oracle-license-v1-1 select true | /usr/bin/debconf-set-selections \
       && apt-get install -y oracle-java8-installer oracle-java8-set-default \
-                            mysql-server \
                             supervisor \
                             git \
                             python-pip \
@@ -69,18 +68,6 @@ RUN java \
 
 WORKDIR /
 
-# Setup metadata store
-RUN /etc/init.d/mysql start \
-      && mysql -u root -e "GRANT ALL ON druid.* TO 'druid'@'localhost' IDENTIFIED BY 'diurd'; CREATE database druid CHARACTER SET utf8;" \
-      && java -cp /usr/local/druid/lib/druid-services-*-selfcontained.jar \
-          -Ddruid.extensions.directory=/usr/local/druid/extensions \
-          -Ddruid.extensions.loadList=[\"mysql-metadata-storage\",\"druid-kafka-indexing-service\"] \
-          -Ddruid.metadata.storage.type=mysql \
-          io.druid.cli.Main tools metadata-init \
-              --connectURI="jdbc:mysql://localhost:3306/druid" \
-              --user=druid --password=diurd \
-      && /etc/init.d/mysql stop
-
 # Setup supervisord
 ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
@@ -89,13 +76,11 @@ ADD supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # - 8082: HTTP (broker)
 # - 8083: HTTP (historical)
 # - 8090: HTTP (overlord)
-# - 3306: MySQL
 # - 2181 2888 3888: ZooKeeper
 EXPOSE 8081
 EXPOSE 8082
 EXPOSE 8083
 EXPOSE 8090
-EXPOSE 3306
 EXPOSE 2181 2888 3888
 
 WORKDIR /var/lib/druid

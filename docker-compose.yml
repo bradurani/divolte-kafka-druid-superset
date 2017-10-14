@@ -1,8 +1,18 @@
 version: "2.1"
 services:
+  # Postgres container
+  docker-postgres:
+    image: postgres:9.6
+    container_name: docker-postgres
+    environment:
+      - POSTGRES_USER=druid
+      - POSTGRES_PASSWORD=diurd
+    ports:
+      - 15432:5432
   # Kafka/Zookeeper container
   docker-kafka:
     build: kafka/
+    image: superset-kafka:latest
     container_name: docker-kafka
     environment:
       - ADVERTISED_HOST=docker-kafka
@@ -15,6 +25,7 @@ services:
   # Divolte container
   docker-divolte:
     build: divolte/
+    image: superset-divolte:latest
     container_name: docker-divolte
     environment:
       - DIVOLTE_KAFKA_BROKER_LIST=docker-kafka:9092
@@ -29,23 +40,27 @@ services:
   # Druid container
   docker-druid:
     build: druid/
+    image: superset-druid:latest
     container_name: docker-druid
     ports:
       - 8081:8081
       - 8082:8082
     depends_on:
       - docker-kafka
+      - docker-postgres
     links:
       - docker-kafka:docker-kafka
+      - docker-postgres:docker-postgres
   # Superset container
   docker-superset:
     build: superset/
+    image: superset-superset:latest
     container_name: docker-superset
     ports:
       - 8088:8088
     links:
       - docker-druid:docker-druid
-  # Superset container
+  # Web portal
   docker-app:
     build: app/
     container_name: docker-app
